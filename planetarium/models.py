@@ -24,7 +24,7 @@ class AstronomyShow(models.Model):
     class Meta:
         verbose_name = "Astronomy Show"
         verbose_name_plural = "Astronomy Shows"
-        ordering = ["title", "theme"]
+        ordering = ["title"]
 
 
 class PlanetariumDome(models.Model):

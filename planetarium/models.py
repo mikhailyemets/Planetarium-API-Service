@@ -43,7 +43,6 @@ class PlanetariumDome(models.Model):
     class Meta:
         verbose_name = "Planetarium"
         verbose_name_plural = "Planetariums"
-        ordering = ["name"]
 
 
 class ShowSession(models.Model):
@@ -58,6 +57,11 @@ class ShowSession(models.Model):
         related_name="sessions"
     )
     show_time = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def info(self):
+        return (f"{self.astronomy_show} in "
+                f"{self.planetarium_dome} at {self.show_time}")
 
     def __str__(self):
         return (f"{self.astronomy_show} in "

@@ -41,6 +41,17 @@ class AstronomyShowViewSet(viewsets.ModelViewSet):
     queryset = AstronomyShow.objects.prefetch_related("theme")
     serializer_class = AstronomyShowSerializer
     permission_classes = (IsAdminOrReadOnly,)
+
+    def get_queryset(self):
+        show = self.request.query_params.get("show")
+
+        queryset = self.queryset
+
+        if show:
+            queryset = queryset.filter(title__icontains=show)
+
+        return queryset
+
     def get_serializer_class(self):
         if self.action == "list":
             return AstronomyShowListSerializer
@@ -55,6 +66,16 @@ class PlanetariumDomeViewSet(viewsets.ModelViewSet):
     queryset = PlanetariumDome.objects.all()
     serializer_class = PlanetariumDomeSerializer
     permission_classes = (IsAdminOrReadOnly,)
+
+    def get_queryset(self):
+        dome = self.request.query_params.get("dome")
+
+        queryset = self.queryset
+        if dome:
+            queryset = queryset.filter(name__icontains=dome)
+
+        return queryset
+
     def get_serializer_class(self):
         if self.action == "list":
             return PlanetariumDomeListSerializer
@@ -71,7 +92,21 @@ class ShowSessionViewSet(viewsets.ModelViewSet):
 
     )
     serializer_class = ShowSessionSerializer
-    permission_classes = IsAdminOrReadOnly
+    permission_classes = (IsAdminOrReadOnly,)
+
+    def get_queryset(self):
+        show = self.request.query_params.get("show")
+        dome = self.request.query_params.get("dome")
+
+        queryset = self.queryset
+
+        if show:
+            queryset = queryset.filter(astronomy_show__title__icontains=show)
+        if dome:
+            queryset = queryset.filter(planetarium_dome__name__icontains=dome)
+
+        return queryset
+
     def get_serializer_class(self):
         if self.action == "list":
             return ShowSessionListSerializer

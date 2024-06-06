@@ -32,6 +32,7 @@ class PlanetariumDome(models.Model):
     name = models.CharField(max_length=255)
     rows = models.IntegerField()
     seats_in_row = models.IntegerField()
+    price_per_seat = models.DecimalField(max_digits=6, decimal_places=2)
 
     def __str__(self):
         return self.name
@@ -140,7 +141,7 @@ class Ticket(models.Model):
                 f"{self.row}x{self.seat}")
 
     class Meta:
-        ordering = ["show_session"]
+        ordering = ["id"]
         unique_together = ("show_session", "row", "seat")
         verbose_name = "Ticket"
         verbose_name_plural = "Tickets"

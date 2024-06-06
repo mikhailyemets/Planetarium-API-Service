@@ -89,6 +89,10 @@ class ReservationViewSet(viewsets.ModelViewSet):
             return Reservation.objects.all()
         return Reservation.objects.filter(user=user)
 
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ReservationListSerializer
+        return super().get_serializer_class()
 
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.select_related("show_session", "reservation")

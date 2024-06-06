@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from rest_framework.permissions import IsAuthenticated
 from planetarium.models import (
     ShowTheme,
     AstronomyShow,
@@ -21,6 +22,10 @@ from planetarium.serializers import (
     ShowSessionListSerializer,
     ShowSessionRetrieveSerializer,
     ReservationSerializer,
+    ReservationListSerializer,
+    TicketSerializer,
+    TicketListSerializer,
+    TicketCreateSerializer
 )
 
 
@@ -76,8 +81,29 @@ class ShowSessionViewSet(viewsets.ModelViewSet):
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Reservation.objects.all()
+        return Reservation.objects.filter(user=user)
+
+
+class TicketViewSet(viewsets.ModelViewSet):
+    queryset = Ticket.objects.select_related("show_session", "reservation")
+    serializer_class = TicketSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == "list":
-            return ReservationSerializer
+            return TicketListSerializer
+        elif self.action == "create":
+            return TicketCreateSerializer
         return super().get_serializer_class()
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Ticket.objects.all()
+        return Ticket.objects.filter(reservation__user=user)

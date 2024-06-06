@@ -77,6 +77,7 @@ class ShowSessionListSerializer(serializers.ModelSerializer):
         read_only=True,
         slug_field="name"
     )
+    show_time = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
 
     class Meta:
         model = ShowSession
@@ -93,11 +94,18 @@ class ShowSessionRetrieveSerializer(serializers.ModelSerializer):
 
 
 class ReservationSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )
+    created_at = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
+        read_only=True
+    )
+
     class Meta:
         model = Reservation
-        fields = ("id", "user", "created_at")
-
-    read_only_fields = ("id", "created_at")
+        fields = ["id", "user", "created_at"]
+        read_only_fields = ["id", "user", "created_at"]
 
 
 class ReservationListSerializer(serializers.ModelSerializer):
@@ -106,6 +114,7 @@ class ReservationListSerializer(serializers.ModelSerializer):
         read_only=True,
         slug_field="email"
     )
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
 
     class Meta:
         model = Reservation
@@ -115,17 +124,39 @@ class ReservationListSerializer(serializers.ModelSerializer):
 class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
-        fields = ("id", "row", "seat", "show_session","reservation")
+        fields = ("id", "row", "seat", "show_session", "reservation")
 
 
 class TicketListSerializer(serializers.ModelSerializer):
-    show_session = serializers.SlugRelatedField(
-        many=False,
-        read_only=True,
-        slug_field="info"
-    )
-    reservation = ReservationListSerializer(many=False, read_only=True)
+    show_session = serializers.SerializerMethodField()
+    reservation = serializers.SerializerMethodField()
+
+    def get_show_session(self, obj):
+        return obj.show_session.info
+
+    def get_reservation(self, obj):
+        return {
+            "id": obj.reservation.id,
+            "user": obj.reservation.user.email,
+            "created_at": obj.reservation.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        }
 
     class Meta:
         model = Ticket
         fields = ("id", "row", "seat", "show_session", "reservation")
+
+
+class TicketCreateSerializer(serializers.ModelSerializer):
+    reservation = serializers.PrimaryKeyRelatedField(queryset=Reservation.objects.none())
+
+    class Meta:
+        model = Ticket
+        fields = ["row", "seat", "show_session", "reservation"]
+
+    def __init__(self, *args, **kwargs):
+        super(TicketCreateSerializer, self).__init__(*args, **kwargs)
+        user = self.context['request'].user
+        self.fields['reservation'].queryset = Reservation.objects.filter(user=user)
+
+    def create(self, validated_data):
+        return Ticket.objects.create(**validated_data)

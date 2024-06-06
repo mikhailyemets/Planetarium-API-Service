@@ -34,7 +34,7 @@ class PlanetariumDome(models.Model):
     seats_in_row = models.IntegerField()
 
     def __str__(self):
-        return f"{self.name} : {self.rows}x{self.seats_in_row}"
+        return self.name
 
     @property
     def capacity(self):
@@ -61,11 +61,13 @@ class ShowSession(models.Model):
     @property
     def info(self):
         return (f"{self.astronomy_show} in "
-                f"{self.planetarium_dome} at {self.show_time}")
+                f"{self.planetarium_dome} at "
+                f"{self.show_time.strftime("%Y-%m-%d %H:%M:%S")}")
 
     def __str__(self):
         return (f"{self.astronomy_show} in "
-                f"{self.planetarium_dome} at {self.show_time}")
+                f"{self.planetarium_dome} at"
+                f"{self.show_time.strftime("%Y-%m-%d %H:%M:%S")}")
 
     class Meta:
         ordering = ["show_time"]
@@ -78,7 +80,7 @@ class Reservation(models.Model):
     )
 
     def __str__(self):
-        return f"Reserved by {self.user}"
+        return f"#{self.id} Reserved by {self.user} at {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
 
 
 class Ticket(models.Model):

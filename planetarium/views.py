@@ -10,6 +10,8 @@ from planetarium.models import (
 )
 
 from rest_framework import viewsets
+
+from planetarium.permissions import IsAdminOrReadOnly
 from planetarium.serializers import (
     ShowThemeSerializer,
     AstronomyShowSerializer,
@@ -32,12 +34,13 @@ from planetarium.serializers import (
 class ShowThemeView(viewsets.ModelViewSet):
     queryset = ShowTheme.objects.all()
     serializer_class = ShowThemeSerializer
+    permission_classes = (IsAdminOrReadOnly,)
 
 
 class AstronomyShowViewSet(viewsets.ModelViewSet):
     queryset = AstronomyShow.objects.prefetch_related("theme")
     serializer_class = AstronomyShowSerializer
-
+    permission_classes = (IsAdminOrReadOnly,)
     def get_serializer_class(self):
         if self.action == "list":
             return AstronomyShowListSerializer
@@ -51,7 +54,7 @@ class AstronomyShowViewSet(viewsets.ModelViewSet):
 class PlanetariumDomeViewSet(viewsets.ModelViewSet):
     queryset = PlanetariumDome.objects.all()
     serializer_class = PlanetariumDomeSerializer
-
+    permission_classes = (IsAdminOrReadOnly,)
     def get_serializer_class(self):
         if self.action == "list":
             return PlanetariumDomeListSerializer
@@ -68,7 +71,7 @@ class ShowSessionViewSet(viewsets.ModelViewSet):
 
     )
     serializer_class = ShowSessionSerializer
-
+    permission_classes = IsAdminOrReadOnly
     def get_serializer_class(self):
         if self.action == "list":
             return ShowSessionListSerializer
@@ -93,6 +96,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if self.action == "list":
             return ReservationListSerializer
         return super().get_serializer_class()
+
 
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.select_related("show_session", "reservation")

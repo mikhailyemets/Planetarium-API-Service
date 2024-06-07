@@ -1,6 +1,8 @@
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
 from planetarium.models import (
     ShowTheme,
     AstronomyShow,
@@ -10,7 +12,7 @@ from planetarium.models import (
     Ticket,
 )
 
-from rest_framework import viewsets
+from rest_framework import viewsets, mixins
 
 from planetarium.permissions import IsAdminOrReadOnly
 from planetarium.serializers import (
@@ -32,10 +34,62 @@ from planetarium.serializers import (
 )
 
 
-class ShowThemeView(viewsets.ModelViewSet):
+class ShowThemeView(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet
+):
     queryset = ShowTheme.objects.all()
     serializer_class = ShowThemeSerializer
     permission_classes = (IsAdminOrReadOnly,)
+
+    @extend_schema(
+        request=ShowThemeSerializer,
+        responses=ShowThemeSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="name",
+                type=str,
+                description="The name of the ShowTheme.",
+                required=False,
+            ),
+        ],
+        examples=[
+            OpenApiExample(
+                "Create Example",
+                summary="Example for creating a ShowTheme instance.",
+                description="An example request body for"
+                            "creating a PlanetariumDome instance.",
+                value={
+                    "name": "The ShowTheme name",
+                },
+            )
+        ],
+    )
+    def create(self, request, *args, **kwargs):
+        """Create a new ShowTheme instance."""
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(
+        responses=ShowThemeSerializer(many=True),
+
+        examples=[
+            OpenApiExample(
+                "List Example",
+                summary="Example for listing ShowTheme instances.",
+                description="An example response body for listing ShowTheme instances.",
+                value={
+                    "id": 1,
+                    "name": "The ShowTheme name 1",
+                },
+                response_only=True
+            ),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        """List ShowTheme instances."""
+        return super().list(request, *args, **kwargs)
 
 
 class AstronomyShowViewSet(viewsets.ModelViewSet):
@@ -62,6 +116,124 @@ class AstronomyShowViewSet(viewsets.ModelViewSet):
 
         return super().get_serializer_class()
 
+    @extend_schema(
+        request=AstronomyShowSerializer,
+        responses=AstronomyShowSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="title",
+                type=str,
+                description="The title of the AstronomyShow.",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="description",
+                type=str,
+                description="The description of the AstronomyShow.",
+                required=False,
+            ),
+            OpenApiParameter(
+                name='theme',
+                type={"type": "array", "items": {"type": "integer"}},
+                description='The list of ids of the AstronomyShow',
+                required=False
+            )
+        ],
+        examples=[
+            OpenApiExample(
+                "Create Example",
+                summary="Example for creating an AstronomyShow instance.",
+                description="An example request body for creating an AstronomyShow instance.",
+                value={
+                    "title": "The title of the AstronomyShow",
+                    "description": "The description of the AstronomyShow",
+                    "theme": [1, 2, 3],
+                },
+            )
+        ]
+    )
+    def create(self, request, *args, **kwargs):
+        """Create a new ShowTheme instance."""
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(
+        responses=AstronomyShowListSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="show",
+                type=str,
+                description="Filter shows by title."
+            )
+        ],
+        examples=[
+            OpenApiExample(
+                "Create Example",
+                summary="Example for creating an AstronomyShow instance.",
+                description="An example request body for creating an AstronomyShow instance.",
+                value={
+                    "title": "The title of the AstronomyShow",
+                    "description": "The description of the AstronomyShow",
+                    "theme": ["Galactic Adventure", "Stars and Galaxies"],
+                },
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        responses=AstronomyShowRetrieveSerializer,
+        examples=[
+            OpenApiExample(
+                "Create Example",
+                summary="Example for creating an AstronomyShow instance.",
+                description="An example request body for creating an AstronomyShow instance.",
+                value={
+                    "title": "The title of the AstronomyShow",
+                    "description": "The description of the AstronomyShow",
+                    "theme": ["Galactic Adventure", "Stars and Galaxies"],
+                },
+            )
+        ]
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(
+        request=AstronomyShowSerializer,
+        responses=AstronomyShowSerializer,
+        examples=[
+            OpenApiExample(
+                "Update Example",
+                summary="Example for updating an AstronomyShow instance.",
+                description="An example request body for updating an AstronomyShow instance.",
+                value={
+                    "title": "Updated AstronomyShow title",
+                    "description": "Updated description of the AstronomyShow",
+                    "theme": [1, 2, 3],
+                },
+            )
+        ]
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(
+        request=AstronomyShowSerializer,
+        responses=AstronomyShowSerializer,
+        examples=[
+            OpenApiExample(
+                "Partial Update Example",
+                summary="Example for partial updating an AstronomyShow instance.",
+                description="An example request body for partial updating an AstronomyShow instance.",
+                value={
+                    "title": "Partially updated AstronomyShow title"
+                },
+            )
+        ]
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
 
 class PlanetariumDomeViewSet(viewsets.ModelViewSet):
     queryset = PlanetariumDome.objects.all()
@@ -184,8 +356,14 @@ class PlanetariumDomeViewSet(viewsets.ModelViewSet):
         ],
     )
     def list(self, request, *args, **kwargs):
-        """List PlanetariumDomes, with optional filtering by name."""
-        return super().list(request, *args, **kwargs)
+        name = request.query_params.get("name")
+        queryset = self.queryset
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     @extend_schema(
         request=PlanetariumDomeSerializer,
@@ -236,8 +414,8 @@ class ShowSessionViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminOrReadOnly,)
 
     def get_queryset(self):
-        show = self.request.query_params.get("show")
-        dome = self.request.query_params.get("dome")
+        show = self.request.query_params.get("astronomy_show")
+        dome = self.request.query_params.get("planetarium_dome")
 
         queryset = self.queryset
 
@@ -256,11 +434,150 @@ class ShowSessionViewSet(viewsets.ModelViewSet):
 
         return super().get_serializer_class()
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="astronomy_show",
+                type=str,
+                description="Filter by the name of the AstronomyShow",
+            ),
+            OpenApiParameter(
+                name="planetarium_dome",
+                type=str,
+                description="Filter by the name of the PlanetariumDome",
+            ),
+        ],
+        responses=ShowSessionListSerializer(many=True),
+        examples=[
+            OpenApiExample(
+                "List Example",
+                summary="Example for listing ShowSessions",
+                description="An example response body"
+                            "for listing ShowSession instances.",
+                value={
+                    "id": 1,
+                    "astronomy_show": {
+                        "title": "Jupiter Show"
+                    },
+                    "planetarium_dome": {
+                        "name": "Jupiter Planetarium"
+                    },
+                    "date": "2023-10-10",
+                    "time": "14:15",
+                }
+            )
+        ],
+    )
+    def list(self, request, *args, **kwargs):
 
-class ReservationViewSet(viewsets.ModelViewSet):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        request=ShowSessionSerializer,
+        responses=ShowSessionSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="astronomy_show",
+                type=str,
+            ),
+            OpenApiParameter(
+                name="planetarium_dome",
+                type=str,
+            ),
+        ],
+        examples=[
+            OpenApiExample(
+                "Create Example",
+                summary="Example for creating a ShowSession",
+                description="An example request body for creating a ShowSession instance.",
+                value={
+                    "astronomy_show": "Jupiter Show",
+                    "planetarium_dome": "Jupiter Planetarium",
+                    "date": "2023-10-10",
+                    "show_time": "2024-06-05 17:11:32",
+                },
+            )
+        ],
+    )
+    def create(self, request, *args, **kwargs):
+        """Create a new ShowSession instance."""
+        return super().create(request, *args, **kwargs)
+    @extend_schema(
+        request=ShowSessionSerializer,
+        responses=ShowSessionSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="astronomy_show",
+                type=str,
+                description="Updated AstronomyShow name",
+            ),
+            OpenApiParameter(
+                name="planetarium_dome",
+                type=str,
+                description="Updated PlanetariumDome name",
+            ),
+        ],
+        examples=[
+            OpenApiExample(
+                "Update Example",
+                summary="Example for updating a ShowSession",
+                description="An example request body for updating a ShowSession instance.",
+                value={
+                    "astronomy_show": "Updated Jupiter Show",
+                    "planetarium_dome": "Updated Jupiter Dome",
+                    "show_time": "2024-06-05 17:11:32"
+                },
+            )
+        ],
+    )
+    def update(self, request, *args, **kwargs):
+        """Update a ShowSession instance."""
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(
+        request=ShowSessionSerializer,
+        responses=ShowSessionSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="astronomy_show",
+                type=str,
+                description="Updated AstronomyShow name",
+            ),
+            OpenApiParameter(
+                name="planetarium_dome",
+                type=str,
+                description="Updated PlanetariumDome name",
+            ),
+        ],
+        examples=[
+            OpenApiExample(
+                "Partial Update Example",
+                summary="Example for partially updating a ShowSession",
+                description="An example request body"
+                            "for partially updating a ShowSession instance.",
+                value={"astronomy_show": "Updated Jupiter Show"},
+            )
+        ],
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """Partially update a ShowSession instance."""
+        return super().partial_update(request, *args, **kwargs)
+
+
+class ReservationViewSet(mixins.CreateModelMixin,
+                         mixins.ListModelMixin,
+                         mixins.DestroyModelMixin,
+                         viewsets.GenericViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
     def get_queryset(self):
         user = self.request.user
@@ -272,6 +589,25 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if self.action == "list":
             return ReservationListSerializer
         return super().get_serializer_class()
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='user',
+                location=OpenApiParameter.QUERY,
+                description='Added automatically',
+            ),
+            OpenApiParameter(
+                name='created_at',
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description='Added automatically',
+            ),
+        ],
+    )
+    def create(self, request, *args, **kwargs):
+        """Create a new Reservation"""
+        return super().create(request, *args, **kwargs)
 
 
 class TicketViewSet(viewsets.ModelViewSet):
@@ -291,3 +627,164 @@ class TicketViewSet(viewsets.ModelViewSet):
         if user.is_staff:
             return Ticket.objects.all()
         return Ticket.objects.filter(reservation__user=user)
+
+    @extend_schema(
+        request=TicketCreateSerializer,
+        responses=TicketSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="row",
+                type=str,
+                description="Choose the row number",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="seat",
+                type=str,
+                description="Choose the seat number",
+                required=False,
+            ),
+            OpenApiParameter(
+                name='show_session',
+                type=int,
+                description='Set the show_session id',
+                required=False
+            ),
+            OpenApiParameter(
+                name="reservation",
+                type=int,
+                description="Set the reservation id",
+                required=False,
+            ),
+        ],
+        examples=[
+            OpenApiExample(
+                "Create Example",
+                summary="Example for creating a Ticket instance.",
+                description="An example request body for creating a Ticket instance.",
+                value={
+                    "row": 1,
+                    "seat": 2,
+                    "show_session": 1,
+                    "reservation": 1
+                },
+            )
+        ]
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(
+        responses=TicketListSerializer,
+        examples=[
+            OpenApiExample(
+                "List Example",
+                summary="Example response for listing Tickets.",
+                description="A sample example of a list of Tickets.",
+                value=[
+                    {
+                        "id": 1,
+                        "row": 1,
+                        "seat": 2,
+                        "show_session": "Astronomy Show in Dome at 2022-01-01 12:00:00",
+                        "reservation": {
+                            "id": 1,
+                            "user": "user@example.com",
+                            "created_at": "2022-01-01 00:00:00"
+                        },
+                        "total_price": "49.99",
+                        "tickets": 5
+                    },
+                    {
+                        "id": 2,
+                        "row": 1,
+                        "seat": 3,
+                        "show_session": "Astronomy Show in Dome at 2022-01-01 12:00:00",
+                        "reservation": {
+                            "id": 1,
+                            "user": "user@example.com",
+                            "created_at": "2022-01-01 00:00:00"
+                        },
+                        "total_price": "49.99",
+                        "tickets": 5
+                    }
+                ],
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        Retrieve a list of tickets.
+        """
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        request=TicketSerializer,
+        responses=TicketSerializer,
+        examples=[
+            OpenApiExample(
+                "Update Example",
+                summary="Example for updating a Ticket instance.",
+                description="An example request body for updating a Ticket instance.",
+                value={
+                    "row": 1,
+                    "seat": 3,
+                    "show_session": 1,
+                    "reservation": 1
+                },
+            )
+        ]
+    )
+    def update(self, request, *args, **kwargs):
+        """
+        Update a ticket instance.
+        """
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(
+        request=TicketSerializer,
+        responses=TicketSerializer,
+        examples=[
+            OpenApiExample(
+                "Partial Update Example",
+                summary="Example for partial updating a Ticket instance.",
+                description="An example request body for partial updating a Ticket instance.",
+                value={
+                    "seat": 4
+                },
+            )
+        ]
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Partially update a ticket instance.
+        """
+        return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(
+        responses=TicketSerializer,
+        examples=[
+            OpenApiExample(
+                "List Example",
+                summary="Example response for listing Tickets.",
+                description="A sample example of a list of Tickets.",
+                value=[
+                    {
+                        "id": 1,
+                        "row": 1,
+                        "seat": 2,
+                        "show_session": "Astronomy Show in Dome at 2022-01-01 12:00:00",
+                        "reservation": {
+                            "id": 1,
+                            "user": "user@example.com",
+                            "created_at": "2022-01-01 00:00:00"
+                        },
+                        "total_price": "49.99",
+                        "tickets": 5
+                    },
+                ],
+            )
+        ]
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)

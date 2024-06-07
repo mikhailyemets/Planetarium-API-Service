@@ -1,3 +1,4 @@
+from django.core.validators import RegexValidator
 from rest_framework import serializers
 
 from planetarium.models import (
@@ -11,6 +12,17 @@ from planetarium.models import (
 
 
 class ShowThemeSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(
+        validators=[
+            RegexValidator(
+                regex='^[a-zA-Z]*$',
+                message='Only English characters are allowed.',
+                code='invalid_name'
+            )
+        ],
+        help_text='Only English characters are allowed.'
+    )
+
     class Meta:
         model = ShowTheme
         fields = ("id", "name")
@@ -23,6 +35,28 @@ class AstronomyShowSerializer(serializers.ModelSerializer):
 
 
 class AstronomyShowListSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(
+        validators=[
+            RegexValidator(
+                regex='^[a-zA-Z]*$',
+                message='Only English characters are allowed in the title.',
+                code='invalid_title'
+            )
+        ],
+        help_text='Only English characters are allowed in the title.'
+    )
+
+    description = serializers.CharField(
+        validators=[
+            RegexValidator(
+                regex='^[a-zA-Z]*$',
+                message='Only English characters are allowed in the description.',
+                code='invalid_description'
+            )
+        ],
+        help_text='Only English characters are allowed in the description.'
+    )
+
     theme = serializers.SlugRelatedField(
         many=True,
         read_only=True,
@@ -168,8 +202,10 @@ class TicketCreateSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super(TicketCreateSerializer, self).__init__(*args, **kwargs)
-        user = self.context['request'].user
-        self.fields['reservation'].queryset = Reservation.objects.filter(user=user)
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            self.fields['reservation'].queryset = Reservation.objects.filter(user=user)
 
     def create(self, validated_data):
         return Ticket.objects.create(**validated_data)

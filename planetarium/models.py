@@ -4,7 +4,7 @@ from django.conf import settings
 
 
 class ShowTheme(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
 
     def __str__(self):
         return self.name
@@ -16,7 +16,7 @@ class ShowTheme(models.Model):
 
 class AstronomyShow(models.Model):
     title = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(max_length=400)
     theme = models.ManyToManyField(ShowTheme, related_name="shows")
 
     def __str__(self):
@@ -38,7 +38,7 @@ class PlanetariumDome(models.Model):
         return self.name
 
     @property
-    def capacity(self):
+    def capacity(self) -> int:
         return self.rows * self.seats_in_row
 
     class Meta:

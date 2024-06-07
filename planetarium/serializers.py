@@ -43,9 +43,11 @@ class AstronomyShowRetrieveSerializer(serializers.ModelSerializer):
 
 
 class PlanetariumDomeSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = PlanetariumDome
-        fields = ("id", "name", "rows", "seats_in_row", "capacity", "price_per_seat")
+        fields = ("id", "name", "rows",
+                  "seats_in_row", "capacity", "price_per_seat")
 
 
 class PlanetariumDomeListSerializer(serializers.ModelSerializer):
@@ -138,7 +140,8 @@ class TicketListSerializer(serializers.ModelSerializer):
         return Ticket.objects.filter(reservation=obj.reservation).count()
 
     def get_total_price(self, obj):
-        return obj.show_session.planetarium_dome.price_per_seat * Ticket.objects.filter(reservation=obj.reservation).count()
+        return (obj.show_session.planetarium_dome.price_per_seat
+                * Ticket.objects.filter(reservation=obj.reservation).count())
 
     def get_show_session(self, obj):
         return obj.show_session.info

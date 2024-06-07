@@ -1,4 +1,8 @@
-from django.core.validators import RegexValidator
+from decimal import Decimal
+
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator, MinValueValidator, \
+    MaxValueValidator
 from rest_framework import serializers
 
 from planetarium.models import (
@@ -77,7 +81,39 @@ class AstronomyShowRetrieveSerializer(serializers.ModelSerializer):
 
 
 class PlanetariumDomeSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(
+        validators=[
+            RegexValidator(
+                regex='^[a-zA-Z]*$',
+                message='Only English characters are allowed in the name.',
+                code='invalid_name'
+            )
+        ],
+        help_text='Only English characters are allowed in the name.'
+    )
 
+    rows = serializers.IntegerField(
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(30)
+        ]
+    )
+
+    seats_in_row = serializers.IntegerField(
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(30)
+        ]
+    )
+
+    price_per_seat = serializers.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        validators=[
+            MinValueValidator(Decimal('1.00')),
+            MinValueValidator(Decimal('30.00'))
+        ]
+    )
     class Meta:
         model = PlanetariumDome
         fields = ("id", "name", "rows",
@@ -159,6 +195,27 @@ class ReservationListSerializer(serializers.ModelSerializer):
 
 
 class TicketSerializer(serializers.ModelSerializer):
+
+    def validate(self, data):
+        row = data.get('row')
+        seat = data.get('seat')
+        show_session = data.get('show_session')
+
+        planetarium_dome = show_session.planetarium_dome
+
+        for ticket_attr_value, ticket_attr_name, dome_attr_name in [
+            (row, "row", "rows"),
+            (seat, "seat", "seats_in_row"),
+        ]:
+            count_attrs = getattr(planetarium_dome, dome_attr_name)
+            if not (1 <= ticket_attr_value <= count_attrs):
+                raise ValidationError(
+                    {
+                        "Seat already taken": f"{ticket_attr_name} number must be in available range:"
+                    }
+                )
+
+        return data
     class Meta:
         model = Ticket
         fields = ("id", "row", "seat", "show_session", "reservation")

@@ -1,7 +1,11 @@
+from datetime import datetime
+
+from django.db.models import Count, Sum, F, Prefetch
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
 
 from planetarium.models import (
     ShowTheme,
@@ -491,6 +495,12 @@ class ShowSessionViewSet(viewsets.ModelViewSet):
                 name="planetarium_dome",
                 type=str,
             ),
+            OpenApiParameter(
+                name="show_time",
+                type=datetime,
+                description="Enter the show time in "
+                            "the format YYYY-MM-DD HH:MM:SS",
+            ),
         ],
         examples=[
             OpenApiExample(
@@ -577,7 +587,7 @@ class ReservationViewSet(mixins.CreateModelMixin,
                          viewsets.GenericViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    permission_classes = [IsAuthenticated,]
 
     def get_queryset(self):
         user = self.request.user
@@ -611,22 +621,25 @@ class ReservationViewSet(mixins.CreateModelMixin,
 
 
 class TicketViewSet(viewsets.ModelViewSet):
-    queryset = Ticket.objects.select_related("show_session", "reservation")
-    serializer_class = TicketSerializer
+    queryset = Ticket.objects.select_related(
+        "show_session__planetarium_dome",
+        "show_session__astronomy_show",
+        "reservation__user"
+    ).prefetch_related(
+        "show_session__astronomy_show__theme"
+    ).annotate(
+        ticket_count=Count('reservation__tickets'),
+        total_price=F('show_session__planetarium_dome__price_per_seat') * Count('reservation__tickets')
+    )
+    serializer_class = TicketListSerializer
     permission_classes = [IsAuthenticated]
-
-    def get_serializer_class(self):
-        if self.action == "list":
-            return TicketListSerializer
-        elif self.action == "create":
-            return TicketCreateSerializer
-        return super().get_serializer_class()
 
     def get_queryset(self):
         user = self.request.user
+        queryset = self.queryset
         if user.is_staff:
-            return Ticket.objects.all()
-        return Ticket.objects.filter(reservation__user=user)
+            return queryset
+        return queryset.filter(reservation__user=user)
 
     @extend_schema(
         request=TicketCreateSerializer,

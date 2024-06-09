@@ -1,6 +1,11 @@
+import os
+import uuid
+from datetime import datetime
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.conf import settings
+from django.utils.text import slugify
 
 
 class ShowTheme(models.Model):
@@ -14,10 +19,18 @@ class ShowTheme(models.Model):
         verbose_name_plural = "Show Themes"
 
 
+def show_image_file_path(instance, filename):
+    _, extension = os.path.splitext(filename)
+    filename = f"{slugify(instance.title)}-{uuid.uuid4()}{extension}"
+
+    return os.path.join("uploads/shows/", filename)
+
+
 class AstronomyShow(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(max_length=400)
     theme = models.ManyToManyField(ShowTheme, related_name="shows")
+    image = models.ImageField(null=True, upload_to=show_image_file_path)
 
     def __str__(self):
         return self.title
@@ -57,18 +70,26 @@ class ShowSession(models.Model):
         on_delete=models.CASCADE,
         related_name="sessions"
     )
-    show_time = models.DateTimeField(auto_now_add=True)
+    show_time = models.DateTimeField(
+        help_text="Enter the show time in the format YYYY-MM-DD HH:MM:SS"
+    )
 
     @property
     def info(self):
         return (f"{self.astronomy_show} in "
                 f"{self.planetarium_dome} at "
-                f"{self.show_time.strftime("%Y-%m-%d %H:%M:%S")}")
+                f"{self.show_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     def __str__(self):
+        if isinstance(self.show_time, str):
+            show_time_obj = datetime.strptime(self.show_time,
+                                              '%Y-%m-%d %H:%M:%S')
+        else:
+            show_time_obj = self.show_time
+
         return (f"{self.astronomy_show} in "
-                f"{self.planetarium_dome} at"
-                f"{self.show_time.strftime("%Y-%m-%d %H:%M:%S")}")
+                f"{self.planetarium_dome} at "
+                f"{show_time_obj.strftime('%Y-%m-%d %H:%M:%S')}")
 
     class Meta:
         ordering = ["show_time"]
@@ -130,6 +151,7 @@ class Ticket(models.Model):
             using=None,
             update_fields=None,
     ):
+
         self.full_clean()
         return super(Ticket, self).save(
             force_insert, force_update, using, update_fields

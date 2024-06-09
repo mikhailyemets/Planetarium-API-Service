@@ -33,9 +33,31 @@ class ShowThemeSerializer(serializers.ModelSerializer):
 
 
 class AstronomyShowSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(
+        validators=[
+            RegexValidator(
+                regex=r'^[a-zA-Z\s]*$',
+                message='Only English characters and spaces are allowed in the title.',
+                code='invalid_title'
+            )
+        ],
+        help_text='Only English characters and spaces are allowed in the title.'
+    )
+
+    description = serializers.CharField(
+        validators=[
+            RegexValidator(
+                regex=r'^[a-zA-Z\s]*$',
+                message='Only English characters and spaces are allowed in the description.',
+                code='invalid_description'
+            )
+        ],
+        help_text='Only English characters and spaces are allowed in the description.'
+    )
+
     class Meta:
         model = AstronomyShow
-        fields = ("id", "title", "description", "theme")
+        fields = ("id", "title", "description", "theme", "image")
 
 
 class AstronomyShowListSerializer(serializers.ModelSerializer):
@@ -84,12 +106,12 @@ class PlanetariumDomeSerializer(serializers.ModelSerializer):
     name = serializers.CharField(
         validators=[
             RegexValidator(
-                regex='^[a-zA-Z]*$',
-                message='Only English characters are allowed in the name.',
+                regex='^[a-zA-Z\s]*$',
+                message='Only English characters and spaces are allowed in the name.',
                 code='invalid_name'
             )
         ],
-        help_text='Only English characters are allowed in the name.'
+        help_text='Only English characters and spaces are allowed in the name.'
     )
 
     rows = serializers.IntegerField(
@@ -107,17 +129,17 @@ class PlanetariumDomeSerializer(serializers.ModelSerializer):
     )
 
     price_per_seat = serializers.DecimalField(
-        max_digits=4,
+        max_digits=6,
         decimal_places=2,
         validators=[
             MinValueValidator(Decimal('1.00')),
-            MinValueValidator(Decimal('30.00'))
+            MaxValueValidator(Decimal('30.00'))
         ]
     )
+
     class Meta:
         model = PlanetariumDome
-        fields = ("id", "name", "rows",
-                  "seats_in_row", "capacity", "price_per_seat")
+        fields = ("id", "name", "rows", "seats_in_row", "capacity", "price_per_seat")
 
 
 class PlanetariumDomeListSerializer(serializers.ModelSerializer):
@@ -134,6 +156,10 @@ class PlanetariumDomeRetrieveSerializer(serializers.ModelSerializer):
 
 
 class ShowSessionSerializer(serializers.ModelSerializer):
+    show_time = serializers.DateTimeField(
+        help_text="Enter the show time in the format YYYY-MM-DD HH:MM:SS"
+    )
+
     class Meta:
         model = ShowSession
         fields = ("id", "astronomy_show", "planetarium_dome", "show_time")
@@ -195,11 +221,51 @@ class ReservationListSerializer(serializers.ModelSerializer):
 
 
 class TicketSerializer(serializers.ModelSerializer):
+    show_session = serializers.SerializerMethodField()
+    class Meta:
+        model = Ticket
+        fields = ("id", "row", "seat", "show_session", "reservation")
+
+
+class TicketListSerializer(serializers.ModelSerializer):
+    show_session_info = serializers.CharField(source='show_session.info', read_only=True)
+    reservation_info = serializers.SerializerMethodField()
+    total_price = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+    tickets = serializers.IntegerField(read_only=True)
+
+    def get_reservation_info(self, obj):
+        return {
+            "id": obj.reservation.id,
+            "user": obj.reservation.user.email,
+            "created_at": obj.reservation.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+    class Meta:
+        model = Ticket
+        fields = ("id", "row", "seat", "show_session_info", "reservation_info", "total_price", "tickets")
+
+
+class TicketCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ticket
+        fields = ["row", "seat", "show_session", "reservation"]
+
+    def __init__(self, *args, **kwargs):
+        super(TicketCreateSerializer, self).__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            self.fields['reservation'].queryset = Reservation.objects.filter(
+                user=user
+            )
 
     def validate(self, data):
         row = data.get('row')
         seat = data.get('seat')
         show_session = data.get('show_session')
+
+        if Ticket.objects.filter(show_session=show_session, row=row, seat=seat).exists():
+            raise ValidationError("This ticket already exists.")
 
         planetarium_dome = show_session.planetarium_dome
 
@@ -211,58 +277,19 @@ class TicketSerializer(serializers.ModelSerializer):
             if not (1 <= ticket_attr_value <= count_attrs):
                 raise ValidationError(
                     {
-                        "Seat already taken": f"{ticket_attr_name} number must be in available range:"
+                        ticket_attr_name: f"{ticket_attr_name} "
+                                          f"number must be in available range:"
+                                          f"(1, {dome_attr_name}): "
+                                          f"(1, {count_attrs})"
                     }
                 )
 
         return data
-    class Meta:
-        model = Ticket
-        fields = ("id", "row", "seat", "show_session", "reservation")
-
-
-class TicketListSerializer(serializers.ModelSerializer):
-    show_session = serializers.SerializerMethodField()
-    reservation = serializers.SerializerMethodField()
-    total_price = serializers.SerializerMethodField()
-    tickets = serializers.SerializerMethodField()
-
-    def get_tickets(self, obj):
-        return Ticket.objects.filter(reservation=obj.reservation).count()
-
-    def get_total_price(self, obj):
-        return (obj.show_session.planetarium_dome.price_per_seat
-                * Ticket.objects.filter(reservation=obj.reservation).count())
-
-    def get_show_session(self, obj):
-        return obj.show_session.info
-
-    def get_reservation(self, obj):
-        return {
-            "id": obj.reservation.id,
-            "user": obj.reservation.user.email,
-            "created_at": obj.reservation.created_at.strftime("%Y-%m-%d %H:%M:%S")
-        }
-
-    class Meta:
-        model = Ticket
-        fields = ("id", "row", "seat","show_session",
-                  "reservation", "total_price", "tickets")
-
-
-class TicketCreateSerializer(serializers.ModelSerializer):
-    reservation = serializers.PrimaryKeyRelatedField(queryset=Reservation.objects.none())
-
-    class Meta:
-        model = Ticket
-        fields = ["row", "seat", "show_session", "reservation"]
-
-    def __init__(self, *args, **kwargs):
-        super(TicketCreateSerializer, self).__init__(*args, **kwargs)
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            user = request.user
-            self.fields['reservation'].queryset = Reservation.objects.filter(user=user)
 
     def create(self, validated_data):
+        if Ticket.objects.filter(show_session=validated_data['show_session'],
+                                 row=validated_data['row'],
+                                 seat=validated_data['seat']).exists():
+            raise ValidationError("This ticket already exists.")
+
         return Ticket.objects.create(**validated_data)

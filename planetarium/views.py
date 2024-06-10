@@ -3,7 +3,7 @@ from datetime import datetime
 from django.db.models import Count, Sum, F, Prefetch
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 
@@ -347,7 +347,7 @@ class PlanetariumDomeViewSet(viewsets.ModelViewSet):
                 "Retrieve Example",
                 summary="Example for retrieving a PlanetariumDome",
                 description="An example response body"
-                            "forretrieving a PlanetariumDome instance.",
+                            "for list of a PlanetariumDomes.",
                 value={
                     "id": 1,
                     "name": "Apollo Dome",
@@ -489,11 +489,13 @@ class ShowSessionViewSet(viewsets.ModelViewSet):
         parameters=[
             OpenApiParameter(
                 name="astronomy_show",
-                type=str,
+                type=int,
+                description="Pick the id of the AstronomyShow",
             ),
             OpenApiParameter(
                 name="planetarium_dome",
-                type=str,
+                type=int,
+                description="Pick the id of the PlanetariumDome",
             ),
             OpenApiParameter(
                 name="show_time",
@@ -508,8 +510,8 @@ class ShowSessionViewSet(viewsets.ModelViewSet):
                 summary="Example for creating a ShowSession",
                 description="An example request body for creating a ShowSession instance.",
                 value={
-                    "astronomy_show": "Jupiter Show",
-                    "planetarium_dome": "Jupiter Planetarium",
+                    "astronomy_show": 1,
+                    "planetarium_dome": 3,
                     "date": "2023-10-10",
                     "show_time": "2024-06-05 17:11:32",
                 },
@@ -631,15 +633,33 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket_count=Count('reservation__tickets'),
         total_price=F('show_session__planetarium_dome__price_per_seat') * Count('reservation__tickets')
     )
-    serializer_class = TicketListSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.query_params.get('telegram_username', None):
+            self.permission_classes = [AllowAny]
+        else:
+            self.permission_classes = [IsAuthenticated]
+        return super().get_permissions()
 
     def get_queryset(self):
-        user = self.request.user
+        telegram_username = self.request.query_params.get('telegram_username', None)
         queryset = self.queryset
+
+        if telegram_username:
+            return queryset.filter(reservation__user__telegram_username=telegram_username).select_related('show_session', 'reservation')
+
+        user = self.request.user
         if user.is_staff:
             return queryset
-        return queryset.filter(reservation__user=user)
+        return queryset.filter(reservation__user=user).select_related('show_session', 'reservation')
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return TicketListSerializer
+        if self.action == "create":
+            return TicketCreateSerializer
+        return super().get_serializer_class()
+
 
     @extend_schema(
         request=TicketCreateSerializer,
@@ -666,7 +686,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             OpenApiParameter(
                 name="reservation",
                 type=int,
-                description="Set the reservation id",
+                description="You need to choose reservation id that was created by this user",
                 required=False,
             ),
         ],

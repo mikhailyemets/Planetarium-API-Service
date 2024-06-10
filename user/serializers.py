@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ("id", "email", "password", "is_staff")
+        fields = ("id", "email", "password", "telegram_username", "is_staff")
         read_only_fields = ("is_staff",)
         extra_kwargs = {
             "password": {

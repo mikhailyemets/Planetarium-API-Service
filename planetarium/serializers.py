@@ -221,7 +221,6 @@ class ReservationListSerializer(serializers.ModelSerializer):
 
 
 class TicketSerializer(serializers.ModelSerializer):
-    show_session = serializers.SerializerMethodField()
     class Meta:
         model = Ticket
         fields = ("id", "row", "seat", "show_session", "reservation")
@@ -242,7 +241,8 @@ class TicketListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ticket
-        fields = ("id", "row", "seat", "show_session_info", "reservation_info", "total_price", "tickets")
+        fields = ("id", "row", "seat", "show_session_info",
+                  "reservation_info", "total_price", "tickets")
 
 
 class TicketCreateSerializer(serializers.ModelSerializer):
@@ -255,9 +255,7 @@ class TicketCreateSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
             user = request.user
-            self.fields['reservation'].queryset = Reservation.objects.filter(
-                user=user
-            )
+            self.fields['reservation'].queryset = Reservation.objects.filter(user=user)
 
     def validate(self, data):
         row = data.get('row')
@@ -275,21 +273,14 @@ class TicketCreateSerializer(serializers.ModelSerializer):
         ]:
             count_attrs = getattr(planetarium_dome, dome_attr_name)
             if not (1 <= ticket_attr_value <= count_attrs):
-                raise ValidationError(
-                    {
-                        ticket_attr_name: f"{ticket_attr_name} "
-                                          f"number must be in available range:"
-                                          f"(1, {dome_attr_name}): "
-                                          f"(1, {count_attrs})"
-                    }
-                )
+                raise ValidationError({
+                    ticket_attr_name: f"{ticket_attr_name} number must be in available range: (1, {dome_attr_name}): (1, {count_attrs})"
+                })
 
         return data
 
     def create(self, validated_data):
-        if Ticket.objects.filter(show_session=validated_data['show_session'],
-                                 row=validated_data['row'],
-                                 seat=validated_data['seat']).exists():
+        if Ticket.objects.filter(show_session=validated_data['show_session'], row=validated_data['row'], seat=validated_data['seat']).exists():
             raise ValidationError("This ticket already exists.")
 
         return Ticket.objects.create(**validated_data)

@@ -152,16 +152,6 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
-if not os.environ.get("RUNNING_TESTS"):
-    REST_FRAMEWORK.update(
-        {
-            "DEFAULT_THROTTLE_CLASSES": [
-                "rest_framework.throttling.AnonRateThrottle",
-                "rest_framework.throttling.UserRateThrottle",
-            ],
-            "DEFAULT_THROTTLE_RATES": {"anon": "10/minute", "user": "30/minute"},
-        }
-    )
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=36500),
@@ -210,6 +200,17 @@ LOGGING = {
         },
     },
 }
+
+if not os.environ.get("RUNNING_TESTS"):
+    REST_FRAMEWORK.update(
+        {
+            "DEFAULT_THROTTLE_CLASSES": [
+                "rest_framework.throttling.AnonRateThrottle",
+                "rest_framework.throttling.UserRateThrottle",
+            ],
+            "DEFAULT_THROTTLE_RATES": {"anon": "10/minute", "user": "30/minute"},
+        }
+    )
 
 
 TESTING = "test" in sys.argv

@@ -32,7 +32,6 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -61,7 +60,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    'planetarium.c_middleware.LogFailedLoginAttemptsMiddleware',
+    "planetarium.c_middleware.LogFailedLoginAttemptsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 INTERNAL_IPS = [
@@ -159,44 +158,44 @@ SIMPLE_JWT = {
 
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'file': {
-            'level': 'WARNING',
-            'class': 'logging.FileHandler',
-            'filename': 'logs/login_failures.log',  # Логи попыток входа
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "level": "WARNING",
+            "class": "logging.FileHandler",
+            "filename": "logs/login_failures.log",  # Логи попыток входа
         },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': 'logs/server_errors.log',  # Логи ошибок сервера
+        "error_file": {
+            "level": "ERROR",
+            "class": "logging.FileHandler",
+            "filename": "logs/server_errors.log",  # Логи ошибок сервера
         },
-        'critical_file': {
-            'level': 'CRITICAL',
-            'class': 'logging.FileHandler',
-            'filename': 'logs/server_critical.log',  # Логи критических ошибок
+        "critical_file": {
+            "level": "CRITICAL",
+            "class": "logging.FileHandler",
+            "filename": "logs/server_critical.log",  # Логи критических ошибок
         },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
         },
     },
-    'loggers': {
-        'django': {
-            'handlers': ['file', 'error_file', 'critical_file'],
-            'level': 'WARNING',
-            'propagate': True,
+    "loggers": {
+        "django": {
+            "handlers": ["file", "error_file", "critical_file"],
+            "level": "WARNING",
+            "propagate": True,
         },
-        'django.request': {
-            'handlers': ['error_file', 'console'],
-            'level': 'ERROR',
-            'propagate': False,
+        "django.request": {
+            "handlers": ["error_file", "console"],
+            "level": "ERROR",
+            "propagate": False,
         },
-        'django.security': {
-            'handlers': ['critical_file', 'console'],
-            'level': 'CRITICAL',
-            'propagate': False,
+        "django.security": {
+            "handlers": ["critical_file", "console"],
+            "level": "CRITICAL",
+            "propagate": False,
         },
     },
 }

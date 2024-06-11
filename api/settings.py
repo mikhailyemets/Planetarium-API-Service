@@ -14,7 +14,7 @@ import os
 import sys
 from datetime import timedelta
 from pathlib import Path
-
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,12 +24,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-hb7uq-+%(rkx+lg+*chgi4vv#mu+aoti!%i$04lb8m$4c_kwo0"
+SECRET_KEY = config("SECRET")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    # setting for tg_bot
+    "127.0.0.1",
+    "localhost",
+    "planetarium"
+]
 
 
 # Application definition
@@ -91,10 +96,20 @@ WSGI_APPLICATION = "api.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB"),
+        "USER": os.environ.get("POSTGRES_USER"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+        "HOST": os.environ.get("POSTGRES_HOST"),
+        "PORT": os.environ.get("POSTGRES_PORT"),
     }
 }
 
@@ -164,17 +179,17 @@ LOGGING = {
         "file": {
             "level": "WARNING",
             "class": "logging.FileHandler",
-            "filename": "logs/login_failures.log",  # Логи попыток входа
+            "filename": "logs/login_failures.log",  # Login Failures
         },
         "error_file": {
             "level": "ERROR",
             "class": "logging.FileHandler",
-            "filename": "logs/server_errors.log",  # Логи ошибок сервера
+            "filename": "logs/server_errors.log",  # Server Errors
         },
         "critical_file": {
             "level": "CRITICAL",
             "class": "logging.FileHandler",
-            "filename": "logs/server_critical.log",  # Логи критических ошибок
+            "filename": "logs/server_critical.log",  # Critical Errors
         },
         "console": {
             "level": "DEBUG",

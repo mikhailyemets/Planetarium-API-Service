@@ -1,5 +1,6 @@
 import logging
 import requests
+from decouple import config
 
 from telegram import (
     Update,
@@ -20,11 +21,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-THEMES_URL = 'http://127.0.0.1:8000/api/planetarium/themes/'
-SESSIONS_URL = 'http://127.0.0.1:8000/api/planetarium/show_sessions/'
-ASTRO_SHOWS_URL = 'http://127.0.0.1:8000/api/planetarium/shows/'
-TICKETS_URL = 'http://127.0.0.1:8000/api/planetarium/tickets/'
-DOMES_URL = 'http://127.0.0.1:8000/api/planetarium/domes/'
+# setting for tg_bot/docker
+
+HOST = 'http://127.0.0.1:8000'
+DOCKER_HOST = 'http://planetarium:8000'
+
+THEMES_URL = f'{DOCKER_HOST}/api/planetarium/themes/'
+SESSIONS_URL = f'{DOCKER_HOST}/api/planetarium/show_sessions/'
+ASTRO_SHOWS_URL = f'{DOCKER_HOST}/api/planetarium/shows/'
+TICKETS_URL = f'{DOCKER_HOST}/api/planetarium/tickets/'
+DOMES_URL = f'{DOCKER_HOST}/api/planetarium/domes/'
 
 def build_menu():
     return [
@@ -61,16 +67,16 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 session_list = ''
                 for session in sessions:
                     session_list += (
-                        f"Сеанс ID: {session['id']}\n"
-                        f"Шоу ID: {session['show']}\n"
-                        f"Дата и время: {session['date_time']}\n\n"
+                        f"Session ID: {session['id']}\n"
+                        f"Show ID: {session['show']}\n"
+                        f"Date and Time: {session['date_time']}\n\n"
                     )
 
-                message = f"Список доступных сеансов:\n{session_list}" if session_list else "Сеансы не найдены"
+                message = f"List of available sessions:\n{session_list}" if session_list else "Sessions not found"
             else:
-                message = "Ответ от API не является списком сеансов"
+                message = "Response from API is not a list of sessions"
         except requests.exceptions.RequestException as e:
-            message = f'Ошибка при подключении к API: {e}'
+            message = f'Error connecting to API: {e}'
 
     elif query.data == 'list_astronomy_shows':
         try:
@@ -83,17 +89,17 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 for show in shows:
                     themes = ', '.join(show['theme'])
                     show_list += (
-                        f"Шоу ID: {show['id']}\n"
-                        f"Название: {show['title']}\n"
-                        f"Описание: {show['description']}\n"
-                        f"Темы: {themes}\n\n"
+                        f"Show ID: {show['id']}\n"
+                        f"Title: {show['title']}\n"
+                        f"Description: {show['description']}\n"
+                        f"Themes: {themes}\n\n"
                     )
 
-                message = f"Список доступных шоу:\n{show_list}" if show_list else "Шоу не найдены"
+                message = f"List of available shows:\n{show_list}" if show_list else "Shows not found"
             else:
-                message = "Ответ от API не является списком шоу"
+                message = "Response from API is not a list of shows"
         except requests.exceptions.RequestException as e:
-            message = f'Ошибка при подключении к API: {e}'
+            message = f'Error connecting to API: {e}'
 
     elif query.data == 'list_themes':
         try:
@@ -104,24 +110,24 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             if isinstance(themes, list):
                 theme_list = ''
                 for theme in themes:
-                    theme_list += f"Тема ID: {theme['id']}, Название: {theme['name']}\n"
+                    theme_list += f"Theme ID: {theme['id']}, Name: {theme['name']}\n"
 
-                message = f"Список доступных тем:\n{theme_list}" if theme_list else "Темы не найдены"
+                message = f"List of available themes:\n{theme_list}" if theme_list else "Themes not found"
             else:
-                message = "Ответ от API не является списком тем"
+                message = "Response from API is not a list of themes"
         except requests.exceptions.RequestException as e:
-            message = f'Ошибка при подключении к API: {e}'
+            message = f'Error connecting to API: {e}'
 
     elif query.data == 'list_tickets':
         telegram_username = update.effective_user.username
-        logger.info(f'Запрос билетов для пользователя: {telegram_username}')
+        logger.info(f'Requesting tickets for user: {telegram_username}')
         if telegram_username:
             await show_tickets(update, context, telegram_username)
             return
         else:
-            message = "Ошибка: не удалось определить ваше имя пользователя в Telegram."
+            message = "Error: Could not determine your Telegram username."
 
-    elif query.data == 'list_domes':  # Новая обработка для списка домов
+    elif query.data == 'list_domes':
         try:
             response = requests.get(DOMES_URL)
             response.raise_for_status()
@@ -130,13 +136,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             if isinstance(domes, list):
                 dome_list = ''
                 for dome in domes:
-                    dome_list += f"**Дом ID:** {dome['id']}, Название: {dome['name']}\n"
+                    dome_list += f"**Dome ID:** {dome['id']}, Name: {dome['name']}\n"
 
-                message = f"Список доступных домов:\n{dome_list}" if dome_list else "Дома не найдены"
+                message = f"List of available domes:\n{dome_list}" if dome_list else "Domes not found"
             else:
-                message = "Ответ от API не является списком домов"
+                message = "Response from API is not a list of domes"
         except requests.exceptions.RequestException as e:
-            message = f'Ошибка при подключении к API: {e}'
+            message = f'Error connecting to API: {e}'
 
     keyboard = build_menu()
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -153,18 +159,18 @@ async def show_tickets(update: Update, context: ContextTypes.DEFAULT_TYPE, teleg
             for ticket in tickets:
                 reservation_info = ticket.get('reservation_info', {})
                 ticket_list += (
-                    f"Билет ID: {ticket['id']}\n"
-                    f"Ряд: {ticket['row']}\n"
-                    f"Место: {ticket['seat']}\n"
+                    f"Ticket ID: {ticket['id']}\n"
+                    f"Row: {ticket['row']}\n"
+                    f"Seat: {ticket['seat']}\n"
                     f"Show Session: {ticket['show_session_info']}\n"
                     f"Reservation Created At: {reservation_info.get('created_at', 'N/A')}\n"
                     f"---\n"
                 )
-            message = f"Ваши билеты:\n{ticket_list}" if ticket_list else "У вас нет купленных билетов"
+            message = f"Your tickets:\n{ticket_list}" if ticket_list else "You have no purchased tickets"
         else:
-            message = "У вас нет купленных билетов"
+            message = "You have no purchased tickets"
     except requests.exceptions.RequestException as e:
-        message = f'Ошибка при подключении к API: {e}'
+        message = f'Error connecting to API: {e}'
 
     keyboard = build_menu()
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -172,7 +178,7 @@ async def show_tickets(update: Update, context: ContextTypes.DEFAULT_TYPE, teleg
 
 
 def main() -> None:
-    TG_BOT_TOKEN = '7069982548:AAH1wLBjwMY5GuCLk4Ckox2b-LO4TfmxGrA'
+    TG_BOT_TOKEN = config("TG_TOKEN")
 
     app = ApplicationBuilder().token(TG_BOT_TOKEN).build()
 

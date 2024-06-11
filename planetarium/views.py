@@ -96,7 +96,8 @@ class PlanetariumDomeViewSet(viewsets.ModelViewSet):
 
 @show_session_schema
 class ShowSessionViewSet(viewsets.ModelViewSet):
-    queryset = ShowSession.objects.select_related("astronomy_show", "planetarium_dome")
+    queryset = ShowSession.objects.select_related("astronomy_show",
+                                                  "planetarium_dome")
     serializer_class = ShowSessionSerializer
     permission_classes = (IsAdminOrReadOnly,)
 

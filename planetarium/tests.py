@@ -30,14 +30,16 @@ def create_admin_user():
 
 
 def create_user():
-    user = User.objects.create_user(email="user@example.com", password="userpassword")
+    user = User.objects.create_user(email="user@example.com",
+                                    password="userpassword")
     return user
 
 
 def get_user_token():
     client = APIClient()
     response = client.post(
-        "/api/user/token/", {"email": "user@example.com", "password": "userpassword"}
+        "/api/user/token/", {"email": "user@example.com",
+                             "password": "userpassword"}
     )
     return response.data["access"]
 

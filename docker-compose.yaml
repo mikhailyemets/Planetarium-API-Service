@@ -1,0 +1,64 @@
+services:
+  user:
+    build:
+      context: .
+    env_file:
+      - .env
+    ports:
+      - "8002:8000"
+    volumes:
+      - .:/app
+      - my_media:/files/media
+    command: >
+      sh -c "
+      python manage.py wait_for_db
+      && python manage.py migrate
+      && python manage.py loaddata user.json
+      && python manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      - db
+
+  planetarium:
+    container_name: planetarium
+    build:
+      context: .
+    env_file:
+      - .env
+    ports:
+      - "8001:8000"
+    volumes:
+      - .:/app
+      - my_media:/files/media
+    command: >
+      sh -c "
+      python manage.py wait_for_db
+      && python manage.py migrate
+      && python manage.py loaddata planetarium.json
+      && python manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      - db
+
+  telegram_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: >
+      sh -c '[ -z "$TG_TOKEN" ] || python tele_bot.py'
+    depends_on:
+      - planetarium
+
+  db:
+    image: postgres:16.0-alpine3.17
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - my_db:$PGDATA
+
+volumes:
+  my_db:
+  my_media:

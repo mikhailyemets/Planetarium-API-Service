@@ -47,10 +47,12 @@ def build_menu():
         ]
     ]
 
+
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = build_menu()
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text('Пожалуйста, выберите:', reply_markup=reply_markup)
+
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -146,7 +148,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     keyboard = build_menu()
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.message.reply_text(message, reply_markup=reply_markup, parse_mode='MarkdownV2')
+    await query.message.reply_text(message, reply_markup=reply_markup)
+
 
 async def show_tickets(update: Update, context: ContextTypes.DEFAULT_TYPE, telegram_username: str) -> None:
     try:

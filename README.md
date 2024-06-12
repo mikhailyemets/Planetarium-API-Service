@@ -1,5 +1,5 @@
 # Planetarium API service
-This is the Planetarium Management API. This project provides a comprehensive set of endpoints to manage the entire theatre ecosystem.
+This is the Planetarium Management API. This project provides a comprehensive set of endpoints to manage the entire ecosystem.
  
 ## Features
 - JWT token authentication.

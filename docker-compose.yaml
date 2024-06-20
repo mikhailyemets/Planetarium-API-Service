@@ -1,11 +1,11 @@
 services:
-  user:
-    build:
-      context: .
+  django:
+    container_name: django
+    build: .
     env_file:
       - .env
     ports:
-      - "8002:8000"
+      - "8000:8000"
     volumes:
       - .:/app
       - my_media:/files/media
@@ -13,27 +13,8 @@ services:
       sh -c "
       python manage.py wait_for_db
       && python manage.py migrate
-      && python manage.py loaddata user.json
-      && python manage.py runserver 0.0.0.0:8000"
-    depends_on:
-      - db
-
-  planetarium:
-    container_name: planetarium
-    build:
-      context: .
-    env_file:
-      - .env
-    ports:
-      - "8001:8000"
-    volumes:
-      - .:/app
-      - my_media:/files/media
-    command: >
-      sh -c "
-      python manage.py wait_for_db
-      && python manage.py migrate
-      && python manage.py loaddata planetarium.json
+      && python manage.py loaddata fixtures/user.json
+      && python manage.py loaddata fixtures/planetarium.json
       && python manage.py runserver 0.0.0.0:8000"
     depends_on:
       - db
@@ -47,7 +28,7 @@ services:
     command: >
       sh -c '[ -z "$TG_TOKEN" ] || python tele_bot.py'
     depends_on:
-      - planetarium
+      - django
 
   db:
     image: postgres:16.0-alpine3.17
